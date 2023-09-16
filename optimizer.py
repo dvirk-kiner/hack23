@@ -37,7 +37,7 @@ class Optimizer:
                 (start_point={start_point_id}) AND
                 (distance <= {max_distance})) AND
                 (delivery_start_date BETWEEN '{possible_date_start}' AND '{possible_date_end}')
-            ) AS
+            ) AS p
         JOIN distances d ON p.end_point = d.start_point AND d.end_point = {start_point_id}
         JOIN distances d2 ON p.start_point = d2.start_point AND p.end_point = d2.end_point
         JOIN distances d3 ON d3.start_point = p.start_point AND d3.end_point = {end_point_id}
@@ -49,7 +49,7 @@ class Optimizer:
         record = self.cur.fetchone()
 
         if record is None:
-            return None
+            return ab_id, 0 # no optimization
 
         optimized_route_id, ad_distance, cd_distance, bc_distance = record
 
@@ -64,7 +64,6 @@ class Optimizer:
         self.cur.execute(query)
         routes_records_to_optimize = self.cur.fetchall()
 
-        routes_optimization = []
 
         for route_record in routes_records_to_optimize:
             route_id = route_record[0]
@@ -97,8 +96,37 @@ class Optimizer:
 
             print(f"Optimized route {route_id} to {optimization_route_id}. Utilization: {empty_distance_utilization:.2f}%")
 
-            routes_optimization.append((route_id, optimization_route_id))
+            # routes_optimization.append((route_id, optimization_route_id))
+            routes_optimization = []
+            routes_optimization_ptrs = []
+            if route_id == optimization_route_id:
+                q = f"SELECT id_starting_point, id_ending_point FROM routes WHERE id={route_id}"
+                self.cur.execute(q)
+                route_data_start,  route_data_end = self.cur.fetchone()
+                routes_optimization.append(route_data_start)
+                routes_optimization.append(route_data_end)
+                routes_optimization.append(route_data_end)
+                routes_optimization.append(route_data_start)
+            else:
+                for route_idx in [route_id, optimization_route_id]:
+                    q = f"SELECT id_starting_point, id_ending_point FROM routes WHERE id={route_idx}"
+                    self.cur.execute(q)
+                    route_data_start,  route_data_end = self.cur.fetchone()
+                    routes_optimization.append(route_data_start)
+                    routes_optimization.append(route_data_end)
+            for r_o in routes_optimization:
+                q = f"SELECT lon, lat FROM locations WHERE id={r_o}"
+                self.cur.execute(q)
+                lot_p,  lat_p = self.cur.fetchone()
+                routes_optimization_ptrs.append(lot_p)
+                routes_optimization_ptrs.append(lat_p)
             
+            q = f"INSERT INTO routes_optimization \
+                (lot_A, lat_A,lot_B, lat_B,lot_C, lat_C,lot_D, lat_D) VALUES \
+                    (?,?,?,?,?,?,?,?);"
+            
+            self.cur.executemany(q, routes_optimization_ptrs)
+
         return routes_optimization
 
     def __del__(self):
