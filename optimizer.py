@@ -62,7 +62,7 @@ class Optimizer:
     def optimize_routes(self, company="HOLCIM"):
         tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
 
-        query = f"SELECT id FROM routes WHERE (is_deleted=0) AND (company={company}) AND delivery_start_date={tomorrow_date}"
+        query = f"SELECT id FROM routes WHERE is_deleted=0 AND company=\"{company}\" AND delivery_start_date=\"{tomorrow_date}\""
         self.cur.execute(query)
         routes_records_to_optimize = self.cur.fetchall()
 

@@ -37,9 +37,7 @@ LEFT JOIN {table_3} AS l_1 \
 ON improved_routes.id_starting_point =l_1.id \
 LEFT JOIN {table_3} AS l_2 \
 ON improved_routes.id_ending_point =l_2.id ;"
-print("="*10)
-print(q)
-print("="*10)
+
 
 data = db.select(to_fetch_all= True, query=q)
 
