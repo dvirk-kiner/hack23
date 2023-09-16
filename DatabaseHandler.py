@@ -103,6 +103,7 @@ class DatabaseHandler:
         table_1 = "routes"
         table_2 = "distances"
         table_3 = "locations"
+        table_4 = "optimizations"
 
         self.cursor.execute(
             f"""
@@ -138,6 +139,22 @@ class DatabaseHandler:
             UNIQUE (lon, lat)
             );"""
         )
+        
+        self.cursor.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {table_4} (
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            delivery_start_date DATE,
+            lot_A DOUBLE,
+            lat_A DOUBLE,
+            lot_B DOUBLE,
+            lat_B DOUBLE,
+            lot_C DOUBLE,
+            lat_C DOUBLE,
+            lot_D DOUBLE,
+            lat_D DOUBLE
+            );"""
+        )
 
         self.conn.commit()
 
@@ -146,7 +163,23 @@ class DatabaseHandler:
 
 
 if __name__ == "__main__":
+    table_4 = "optimizations"
     db = DatabaseHandler(r"./db/hack23_db.db")
-    db.create_db_schemas()
-    db.excel_to_db(r"./data/out_bound.csv")
+    db.cursor.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {table_4} (
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            delivery_start_date DATE,
+            lot_A DOUBLE,
+            lat_A DOUBLE,
+            lot_B DOUBLE,
+            lat_B DOUBLE,
+            lot_C DOUBLE,
+            lat_C DOUBLE,
+            lot_D DOUBLE,
+            lat_D DOUBLE
+            );"""
+        )
+    # db.create_db_schemas()
+    # db.excel_to_db(r"./data/out_bound.csv")
     db.close()

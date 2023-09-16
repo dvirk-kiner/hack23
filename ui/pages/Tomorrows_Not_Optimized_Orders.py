@@ -18,24 +18,35 @@ table_3 = "locations"
 
 possible_date_end = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
 
-q = f"SELECT improved_routes.company, {table_3}.lon AS starting_point_lot, {table_3}.lat AS starting_point_lat, {table_3}.lon AS ending_point_lot, {table_3}.lat AS ending_point_lat, \
-improved_routes.delivery_end_date, improved_routes.distance FROM (SELECT * FROM {table_1} WHERE delivery_start_date = {possible_date_end}) AS improved_routes LEFT JOIN {table_3} \
-ON improved_routes.id_starting_point ={table_3}.id OR improved_routes.id_ending_point ={table_3}.id;"
-print("=====================================")
-print(q)
-print("=====================================")
-data = db.select(to_fetch_all=True, query=q)
+# q = f"SELECT improved_routes.company, {table_3}.lon AS starting_point_lot, {table_3}.lat AS starting_point_lat, {table_3}.lon AS ending_point_lot, {table_3}.lat AS ending_point_lat, \
+#       improved_routes.delivery_end_date, improved_routes.distance FROM (SELECT * FROM {table_1} WHERE delivery_start_date = {possible_date_end}) as improved_routes LEFT JOIN {table_3} \
+#           ON improved_routes.id_starting_point ={table_3}.id OR improved_routes.id_ending_point ={table_3}.id;"
+q = f"SELECT improved_routes.id, improved_routes.company,\
+l_1.lon AS starting_point_lot,\
+l_1.lat AS starting_point_lan,l_2.lon AS ending_point_lot,\
+l_2.lat AS ending_point_lan, improved_routes.delivery_end_date, improved_routes.distance \
+FROM (\
+SELECT * \
+FROM {table_1} \
+WHERE delivery_start_date = \"{possible_date_end}\"\
+) AS improved_routes \
+LEFT JOIN {table_3} AS l_1\
+ON improved_routes.id_starting_point =l_1.id \
+LEFT JOIN {table_3} AS l_2\
+ON improved_routes.id_ending_point =l_2.id ;"
+
+data = db.select(to_fetch_all= True, query=q)
 
 st.set_page_config(page_title="Tomorrow's Not Optimized Orders")
 st.markdown("# Tomorrow's Not Optimized Orders")
 
 # data= pd.DataFrame(np.random.randn(10, 6),columns=['Company','Starting point','Ending point','Delivery date','Type of material','Weight'])
 data= pd.DataFrame(data,columns=['Company','Starting point-Lot','Starting point-Lan',\
-                            'Ending point-Lot','Ending point-Lan','Delivery date','distance'])
+                            'Ending point-Lot','Ending point-Lan','Delivery date','Distance'])
 st.dataframe(data)
 
 opt_btn = st.button('Optimize')
 
 if opt_btn:
     opt = Optimizer(db_path)
-    res = opt.optimize_routes()
+    opt.optimize_routes()
