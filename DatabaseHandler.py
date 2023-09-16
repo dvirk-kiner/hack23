@@ -1,6 +1,7 @@
 import datetime
 import math
 import sqlite3
+from distances import get_distances
 
 import pandas as pd
 from tqdm.auto import tqdm
@@ -157,6 +158,70 @@ class DatabaseHandler:
         )
 
         self.conn.commit()
+
+    def location_exists(self, lon, lat):
+        q = f"SELECT id FROM locations WHERE (lat={lat}) AND (lon={lon})"
+        res = self.select(q, to_fetch_all=True)
+
+        if len(res) == 0:
+            return None
+
+        return res[0][0]
+
+    def add_new_location(self, lon, lat):
+        loc = self.location_exists(lon, lat)
+
+        # if location already exists, return its id
+        if loc is not None:
+            return loc
+
+        q = f"INSERT INTO locations (lat, lon) VALUES ({lat}, {lon})"
+        self.insert(q)
+        loc_id = self.cursor.lastrowid
+
+        # compute distances to all other locations
+        q = f"SELECT id, lat, lon FROM locations WHERE id != {loc_id}"
+        res = self.select(q, to_fetch_all=True)
+
+        origins = [(lat, lon)]
+        destinations = [(l[1], l[2]) for l in res]
+
+        distances = get_distances(origins, destinations)[0]
+
+        distances_to_add = [(loc_id, res[i][0], distances[i]) for i in range(len(res))]
+        distances_to_add += [(res[i][0], loc_id, distances[i]) for i in range(len(res))]
+
+        self.cursor.executemany(
+            """
+            INSERT INTO distances
+            (id_point_a, id_point_b, distance)
+            VALUES (?, ?, ?);
+            """,
+            distances_to_add,
+        )
+
+        return loc_id
+
+    def add_new_route(self, a_lon, a_lot, b_lon, b_lot, end_date, company):
+        # Add new locations
+        a_id = self.add_new_location(a_lon, a_lot)
+        b_id = self.add_new_location(b_lon, b_lot)
+
+        # Add new route
+        distance = self.select(
+            f"SELECT distance FROM distances WHERE (id_point_a={a_id}) AND (id_point_b={b_id})", to_fetch_all=True
+        )[0][0]
+        distance_to_days = distance // 500
+        end_date_str = datetime.datetime(end_date).strftime("%d/%m/%Y")
+        start_date_str = (datetime.datetime(end_date) - datetime.timedelta(days=distance_to_days)).strftime("%d/%m/%Y")
+
+        self.insert(
+            f"""
+            INSERT INTO routes
+            (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted)
+            VALUES ({a_id}, {b_id}, '{start_date_str}', '{end_date_str}', {distance}, '{company}', 0);
+            """
+        )
 
     def close(self):
         self.conn.close()
