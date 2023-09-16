@@ -6,7 +6,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from DatabaseHandler import DatabaseHandler
 from optimizer import Optimizer
 
-db_path = r"../hack23_db.db"
+
+db_abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "db", "hack23_db.db"))
+
+db_path = db_abs_path
 db = DatabaseHandler(db_path)
 table_1 = "routes"
 table_2 = "distances"
@@ -21,19 +24,22 @@ possible_date_end = (datetime.datetime.now() + datetime.timedelta(days=1)).strft
 # q = f"SELECT improved_routes.company, {table_3}.lon AS starting_point_lot, {table_3}.lat AS starting_point_lat, {table_3}.lon AS ending_point_lot, {table_3}.lat AS ending_point_lat, \
 #       improved_routes.delivery_end_date, improved_routes.distance FROM (SELECT * FROM {table_1} WHERE delivery_start_date = {possible_date_end}) as improved_routes LEFT JOIN {table_3} \
 #           ON improved_routes.id_starting_point ={table_3}.id OR improved_routes.id_ending_point ={table_3}.id;"
-q = f"SELECT improved_routes.id, improved_routes.company,\
-l_1.lon AS starting_point_lot,\
-l_1.lat AS starting_point_lan,l_2.lon AS ending_point_lot,\
+q = f"SELECT improved_routes.id, improved_routes.company, \
+l_1.lon AS starting_point_lot, \
+l_1.lat AS starting_point_lan, l_2.lon AS ending_point_lot, \
 l_2.lat AS ending_point_lan, improved_routes.delivery_end_date, improved_routes.distance \
-FROM (\
+FROM ( \
 SELECT * \
 FROM {table_1} \
 WHERE delivery_start_date = \"{possible_date_end}\"\
 ) AS improved_routes \
-LEFT JOIN {table_3} AS l_1\
+LEFT JOIN {table_3} AS l_1 \
 ON improved_routes.id_starting_point =l_1.id \
-LEFT JOIN {table_3} AS l_2\
+LEFT JOIN {table_3} AS l_2 \
 ON improved_routes.id_ending_point =l_2.id ;"
+print("="*10)
+print(q)
+print("="*10)
 
 data = db.select(to_fetch_all= True, query=q)
 

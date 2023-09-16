@@ -8,8 +8,8 @@ from DatabaseHandler import DatabaseHandler
 
 st.set_page_config(page_title="Orders")
 st.markdown("# Orders")
-
-db = DatabaseHandler(r"../hack23_db.db")
+db_abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "db", "hack23_db.db"))
+db = DatabaseHandler(db_abs_path)
 table_1 = "routes"
 table_2 = "distances"
 table_3 = "locations"
