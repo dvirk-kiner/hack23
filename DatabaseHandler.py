@@ -1,108 +1,136 @@
+import datetime
+import math
 import sqlite3
-import csv, math
-from datetime import datetime
 
-from distances import get_distances
+import pandas as pd
+from tqdm.auto import tqdm
+
+# from distances import get_distances
+
+
 #  lat , lon
 class DatabaseHandler:
     def __init__(self, db_path):
         self.db_path = db_path
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
-        
+
     def select(self, query, to_fetch_all=False):
+        query = query.replace("\n", " ")
         self.cursor.execute(query)
         if to_fetch_all:
             return self.cursor.fetchall()
-        
+
+    @staticmethod
+    def remove_whitespaces(query):
+        return " ".join(query.split())
+
     def insert(self, query):
-        print("_"*20)
-        print(query)
-        print(self.cursor.execute(query))
-        print("_"*20)
+        query = self.remove_whitespaces(query)
         self.conn.commit()
-    
+        return self.cursor.lastrowid
+
     def update(self, query):
+        query = self.remove_whitespaces(query)
         self.cursor.execute(query)
         self.conn.commit()
-        
+
     def delete(self, query):
+        query = self.remove_whitespaces(query)
         self.cursor.execute(query)
         self.conn.commit()
-    
-    def insert_csv_to_db(self, csv_path, table_name="routes"):
-        print(csv_path)
-        with open(csv_path, 'r') as f:
-            # self.cursor.execute(f"DELETE FROM {table_name}")
-            dr = csv.DictReader(f)
-            to_db = []
-            for i in dr:
-                plant_lat = i["Plant Latitude"]
-                plant_lon = i["Plant Longitude"]
-                client_lat = i["Client Latitude"]
-                client_lon = i["Client Longitude"]
-                
-                q = f"INSERT INTO locations (lat, lon) VALUES ({plant_lat}, {plant_lon})"
-                self.insert(q)
-                res = self.select(f"SELECT id FROM locations WHERE lat={plant_lat} AND lon={plant_lon}")
-                
-                a_id = res[0][0]
-                
-                q = f"INSERT INTO locations (lat, lon) VALUES ({client_lat}, {client_lon})"
-                self.insert(q)
-                res = self.select(f"SELECT id FROM locations WHERE lat={client_lat} AND lon={client_lon}")
-                b_id = res[0][0]
-                
-                start_date = datetime.strptime(i["Date"], "%d-%m-%Y")
-                distance =get_distances((plant_lat, plant_lon),(client_lat, client_lon))
-                end_date = distance / 50 / 10
-                end_date = math.ceil(distance / 50 / 10 ) if end_date >= 1 else 0
-                to_db.append((a_id, b_id, start_date, end_date, distance, "Holcin", 0))
-                
-            self.cursor.executemany(f"INSERT INTO {table_name} \
-                (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted) \
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?);", to_db)
-            
-            self.conn.commit()
-            
+
+    def excel_to_db(self, excel_path, sheet_name=0):
+        dr = pd.read_excel(excel_path, sheet_name=sheet_name)
+        dr.dropna(axis='index', how='any', inplace=True)
+        to_db = []
+        for i, row in tqdm(list(dr.iterrows())):
+            plant_lat = row["Plant Latitude"]
+            plant_lon = row["Plant Longitude"]
+            client_lat = row["Client Latitude"]
+            client_lon = row["Client Longitude"]
+
+            q = f"INSERT OR IGNORE INTO locations (lat, lon) VALUES ({plant_lat}, {plant_lon})"
+            a_id = self.insert(q)
+
+            q = f"INSERT OR IGNORE INTO locations (lat, lon) VALUES ({client_lat}, {client_lon})"
+            b_id = self.insert(q)
+
+            start_date = row["Date"].date().strftime("%d/%m/%Y")
+            # distances = get_distances([(plant_lat, plant_lon)], [(client_lat, client_lon)])
+            # distance = distances[0]
+            distance = row["Distance [km]"]
+            end_date = (row["Date"].date() + datetime.timedelta(days=distance // 500)).strftime("%d/%m/%Y")
+            to_db.append((a_id, b_id, start_date, end_date, distance, "HOLCIM", 0))
+            to_db.append((b_id, a_id, start_date, end_date, distance, "HOLCIM", 0))
+
+            self.insert(
+                f"""
+                INSERT INTO routes
+                (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted)
+                VALUES ({a_id}, {b_id}, {start_date}, {end_date}, {distance}, "HOLCIM", 0);
+                """
+            )
+
+        # self.cursor.executemany(
+        #     """
+        #     INSERT INTO routes
+        #     (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted)
+        #         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        #     """,
+        #     to_db,
+        # )
+
+        self.conn.commit()
+
     def create_db_schemas(self):
         table_1 = "routes"
         table_2 = "distances"
         table_3 = "locations"
 
-        self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_1} ( \
-            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL, \
-            id_starting_point INTEGER, \
-            id_ending_point INTEGER, \
-            delivery_start_date DATE, \
-            delivery_end_date DATE, \
-            distance DOUBLE, \
-            company VARCHAR(255), \
-            is_deleted BOOLEAN \
-            )")
-        
-        self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_2} ( \
-            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL, \
-            id_point_a INTEGER, \
-            id_point_b INTEGER, \
-            distance DOUBLE, \
-            UNIQUE (id_point_a, id_point_b) \
-            )")
-        self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_3} ( \
-            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL, \
-            lon DOUBLE, \
-            lat DOUBLE, \
-            UNIQUE (lon, lat)\
-            )")
-        
+        self.cursor.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {table_1} (
+            id INTEGER PRIMARY KEY NOT NULL,
+            id_starting_point INTEGER,
+            id_ending_point INTEGER,
+            delivery_start_date DATE,
+            delivery_end_date DATE,
+            distance DOUBLE,
+            company VARCHAR(255),
+            is_deleted BOOLEAN
+            );"""
+        )
+
+        self.cursor.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {table_2} (
+            id INTEGER PRIMARY KEY NOT NULL,
+            id_point_a INTEGER,
+            id_point_b INTEGER,
+            distance DOUBLE,
+            UNIQUE (id_point_a, id_point_b)
+            );"""
+        )
+
+        self.cursor.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {table_3} (
+            id INTEGER PRIMARY KEY NOT NULL,
+            lon DOUBLE,
+            lat DOUBLE,
+            UNIQUE (lon, lat)
+            );"""
+        )
+
         self.conn.commit()
-        
+
     def close(self):
         self.conn.close()
-        
+
+
 if __name__ == "__main__":
-    
-    db = DatabaseHandler(r"/Users/Bar/Desktop/hackZurich_2023/hack23/db/hack23_db.db")
+    db = DatabaseHandler(r"./db/hack23_db.db")
     db.create_db_schemas()
-    db.insert_csv_to_db(r"/Users/Bar/Desktop/hackZurich_2023/hack23/data/out_bound.csv")
+    db.excel_to_db(r"./data/out_bound.csv")
     db.close()
