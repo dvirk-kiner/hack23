@@ -23,7 +23,7 @@ class Optimizer:
         query = f"UPDATE routes SET is_deleted=1 WHERE id={route_id}"
         self.execute_query(query)
 
-    def optimize_route(self, ab_distance, start_point_id, end_point_id, delivery_end_day):
+    def optimize_route(self, ab_id, ab_distance, start_point_id, end_point_id, delivery_end_day):
         max_distance = self.parameters["max_distance_between_routes"]
         possible_date_start = datetime.datetime(delivery_end_day).strftime("%d/%m/%Y")
         possible_date_end = (datetime.datetime(delivery_end_day) + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
@@ -55,6 +55,8 @@ class Optimizer:
 
         empty_distance_utilization = 100.0 * (bc_distance + ad_distance) / (ab_distance + cd_distance)
 
+        self.mark_route_as_deleted(ab_id)
+        self.mark_route_as_deleted(optimized_route_id)
         return optimized_route_id, empty_distance_utilization
 
     def optimize_routes(self, company="HOLCIM"):
@@ -85,7 +87,7 @@ class Optimizer:
                 print(f"Route {route_id} is already deleted. Skipping")
                 continue
 
-            opt_out = self.optimize_route(distance, id_starting_point, id_ending_point, delivery_end_date)
+            opt_out = self.optimize_route(route_id, distance, id_starting_point, id_ending_point, delivery_end_date)
 
             if opt_out is None:
                 print(f"Route {route_id} cannot be optimized. Continuing")
@@ -96,6 +98,8 @@ class Optimizer:
             print(f"Optimized route {route_id} to {optimization_route_id}. Utilization: {empty_distance_utilization:.2f}%")
 
             routes_optimization.append((route_id, optimization_route_id))
+            
+        return routes_optimization
 
     def __del__(self):
         self.db.close()

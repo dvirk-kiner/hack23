@@ -72,8 +72,8 @@ class DatabaseHandler:
 
         self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_1} ( \
             id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL, \
-            id_starting_point DOUBLE, \
-            id_ending_point DOUBLE, \
+            id_starting_point INTEGER, \
+            id_ending_point INTEGER, \
             delivery_start_date DATE, \
             delivery_end_date DATE, \
             distance DOUBLE, \
