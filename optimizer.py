@@ -25,22 +25,22 @@ class Optimizer:
 
     def optimize_route(self, ab_id, ab_distance, start_point_id, end_point_id, delivery_end_day):
         max_distance = self.parameters["max_distance_between_routes"]
-        possible_date_start = datetime.datetime(delivery_end_day).strftime("%d/%m/%Y")
-        possible_date_end = (datetime.datetime(delivery_end_day) + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
+        possible_date_start = delivery_end_day.strftime("%d/%m/%Y")
+        possible_date_end = (delivery_end_day + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
 
         query = f"""
-        SELECT id, d.distance as ad, d2.distance as cd, d3.distance as bc FROM (
+        SELECT p.id as id, d.distance as ad, d2.distance as cd, d3.distance as bc FROM (
 	        SELECT * FROM routes WHERE
             is_deleted=0 AND
-            start_point IN (
-                SELECT end_point from distances WHERE
-                (start_point={start_point_id}) AND
+            id_starting_point IN (
+                SELECT id_point_b from distances WHERE
+                (id_point_a={start_point_id}) AND
                 (distance <= {max_distance})) AND
                 (delivery_start_date BETWEEN '{possible_date_start}' AND '{possible_date_end}')
             ) AS p
-        JOIN distances d ON p.end_point = d.start_point AND d.end_point = {start_point_id}
-        JOIN distances d2 ON p.start_point = d2.start_point AND p.end_point = d2.end_point
-        JOIN distances d3 ON d3.start_point = p.start_point AND d3.end_point = {end_point_id}
+        JOIN distances d ON p.id_ending_point = d.id_point_a AND d.id_point_b = {start_point_id}
+        JOIN distances d2 ON p.id_starting_point = d2.id_point_a AND p.id_ending_point = d2.id_point_b
+        JOIN distances d3 ON d3.id_point_a = p.id_starting_point AND d3.id_point_b = {end_point_id}
         WHERE ad <= {max_distance} AND ({ab_distance} + cd > bc + ad);
         """
         query = query.replace("\n", " ")
