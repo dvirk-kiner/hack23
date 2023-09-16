@@ -27,6 +27,7 @@ class DatabaseHandler:
 
     def insert(self, query):
         query = self.remove_whitespaces(query)
+        self.cursor.execute(query)
         self.conn.commit()
         return self.cursor.lastrowid
 
@@ -42,8 +43,9 @@ class DatabaseHandler:
 
     def excel_to_db(self, excel_path, sheet_name=0):
         dr = pd.read_excel(excel_path, sheet_name=sheet_name)
-        dr.dropna(axis='index', how='any', inplace=True)
-        to_db = []
+        dr.dropna(axis="index", how="any", inplace=True)
+        distances_to_db = []
+        routes_to_db = []
         for i, row in tqdm(list(dr.iterrows())):
             plant_lat = row["Plant Latitude"]
             plant_lon = row["Plant Longitude"]
@@ -51,35 +53,49 @@ class DatabaseHandler:
             client_lon = row["Client Longitude"]
 
             q = f"INSERT OR IGNORE INTO locations (lat, lon) VALUES ({plant_lat}, {plant_lon})"
-            a_id = self.insert(q)
+            self.insert(q)
+            a_id = self.select(
+                f"SELECT id FROM locations WHERE (lat={plant_lat}) AND (lon={plant_lon})", to_fetch_all=True
+            )
+            a_id = a_id[0][0]
 
             q = f"INSERT OR IGNORE INTO locations (lat, lon) VALUES ({client_lat}, {client_lon})"
-            b_id = self.insert(q)
+            self.insert(q)
+            b_id = self.select(
+                f"SELECT id FROM locations WHERE (lat={client_lat}) AND (lon={client_lon})", to_fetch_all=True
+            )
+            b_id = b_id[0][0]
 
             start_date = row["Date"].date().strftime("%d/%m/%Y")
             # distances = get_distances([(plant_lat, plant_lon)], [(client_lat, client_lon)])
             # distance = distances[0]
             distance = row["Distance [km]"]
             end_date = (row["Date"].date() + datetime.timedelta(days=distance // 500)).strftime("%d/%m/%Y")
-            to_db.append((a_id, b_id, start_date, end_date, distance, "HOLCIM", 0))
-            to_db.append((b_id, a_id, start_date, end_date, distance, "HOLCIM", 0))
+            routes_to_db.append((a_id, b_id, start_date, end_date, distance, "HOLCIM", 0))
+            distances_to_db.append((a_id, b_id, distance))
+            distances_to_db.append((b_id, a_id, distance))
 
-            self.insert(
-                f"""
-                INSERT INTO routes
-                (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted)
-                VALUES ({a_id}, {b_id}, {start_date}, {end_date}, {distance}, "HOLCIM", 0);
-                """
-            )
+            if len(distances_to_db) > 1_000:
+                self.cursor.executemany(
+                    """
+                    INSERT OR IGNORE INTO distances
+                    (id_point_a, id_point_b, distance)
+                    VALUES (?, ?, ?);
+                    """,
+                    distances_to_db,
+                )
+                distances_to_db = []
 
-        # self.cursor.executemany(
-        #     """
-        #     INSERT INTO routes
-        #     (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted)
-        #         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-        #     """,
-        #     to_db,
-        # )
+            if len(routes_to_db) > 1_000:
+                self.cursor.executemany(
+                    """
+                    INSERT INTO routes
+                    (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    routes_to_db,
+                )
+                routes_to_db = []
 
         self.conn.commit()
 
@@ -91,7 +107,7 @@ class DatabaseHandler:
         self.cursor.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {table_1} (
-            id INTEGER PRIMARY KEY NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             id_starting_point INTEGER,
             id_ending_point INTEGER,
             delivery_start_date DATE,
@@ -105,7 +121,7 @@ class DatabaseHandler:
         self.cursor.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {table_2} (
-            id INTEGER PRIMARY KEY NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             id_point_a INTEGER,
             id_point_b INTEGER,
             distance DOUBLE,
@@ -116,7 +132,7 @@ class DatabaseHandler:
         self.cursor.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {table_3} (
-            id INTEGER PRIMARY KEY NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             lon DOUBLE,
             lat DOUBLE,
             UNIQUE (lon, lat)
