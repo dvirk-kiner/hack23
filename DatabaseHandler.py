@@ -71,7 +71,7 @@ class DatabaseHandler:
         table_3 = "locations"
 
         self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_1} ( \
-            id INT AUTO_INCREMENT PRIMARY KEY, \
+            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL, \
             id_starting_point DOUBLE, \
             id_ending_point DOUBLE, \
             delivery_start_date DATE, \
@@ -80,16 +80,16 @@ class DatabaseHandler:
             company VARCHAR(255), \
             is_deleted BOOLEAN \
             )")
-        # id	id_point_A	id_point_A	distance
+        
         self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_2} ( \
-            id INT AUTO_INCREMENT PRIMARY KEY, \
-            id_point_a INT, \
-            id_point_b INT, \
+            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL, \
+            id_point_a INTEGER, \
+            id_point_b INTEGER, \
             distance DOUBLE, \
             UNIQUE (id_point_a, id_point_b) \
             )")
         self.cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_3} ( \
-            id INT AUTO_INCREMENT PRIMARY KEY, \
+            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL, \
             lon DOUBLE, \
             lat DOUBLE, \
             UNIQUE (lon, lat)\
