@@ -60,12 +60,14 @@ class Optimizer:
         return optimized_route_id, empty_distance_utilization
 
     def optimize_routes(self, company="HOLCIM"):
-        query = f"SELECT id FROM routes WHERE (is_deleted=0) AND (company={company})"
+        tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
+
+        query = f"SELECT id FROM routes WHERE (is_deleted=0) AND (company={company}) AND delivery_start_date={tomorrow_date}"
         self.cur.execute(query)
         routes_records_to_optimize = self.cur.fetchall()
 
 
-        for route_record in routes_records_to_optimize:
+        for idx, route_record in enumerate(routes_records_to_optimize):
             route_id = route_record[0]
             query = f"SELECT * FROM routes WHERE id={route_id}"
             self.cur.execute(query)
@@ -85,6 +87,9 @@ class Optimizer:
             if is_deleted:
                 print(f"Route {route_id} is already deleted. Skipping")
                 continue
+            
+            # if idx == 0:
+            #     delivery_end_date != (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
 
             opt_out = self.optimize_route(route_id, distance, id_starting_point, id_ending_point, delivery_end_date)
 
@@ -99,6 +104,7 @@ class Optimizer:
             # routes_optimization.append((route_id, optimization_route_id))
             routes_optimization = []
             routes_optimization_ptrs = []
+            routes_optimization_ptrs.append(tomorrow_date)
             if route_id == optimization_route_id:
                 q = f"SELECT id_starting_point, id_ending_point FROM routes WHERE id={route_id}"
                 self.cur.execute(q)
@@ -122,12 +128,12 @@ class Optimizer:
                 routes_optimization_ptrs.append(lat_p)
             
             q = f"INSERT INTO routes_optimization \
-                (lot_A, lat_A,lot_B, lat_B,lot_C, lat_C,lot_D, lat_D) VALUES \
-                    (?,?,?,?,?,?,?,?);"
+                (delivery_start_date, lot_A, lat_A,lot_B, lat_B,lot_C, lat_C,lot_D, lat_D) VALUES \
+                    (?,?,?,?,?,?,?,?,?);"
             
             self.cur.executemany(q, routes_optimization_ptrs)
 
-        return routes_optimization
+        # return routes_optimization
 
     def __del__(self):
         self.db.close()

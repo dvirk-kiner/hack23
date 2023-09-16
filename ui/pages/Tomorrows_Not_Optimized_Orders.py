@@ -12,9 +12,9 @@ table_1 = "routes"
 table_2 = "distances"
 table_3 = "locations"
 
-self.db_path = db_path
-self.conn = sqlite3.connect(self.db_path)
-self.cursor = self.conn.cursor()
+# self.db_path = db_path
+# self.conn = sqlite3.connect(self.db_path)
+# self.cursor = self.conn.cursor()
 
 possible_date_end = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
 
@@ -36,4 +36,4 @@ opt_btn = st.button('Optimize')
 
 if opt_btn:
     opt = Optimizer(db_path)
-    res = opt.optimize_routes()
+    opt.optimize_routes()
