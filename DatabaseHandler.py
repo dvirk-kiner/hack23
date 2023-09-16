@@ -1,7 +1,7 @@
 import datetime
 import math
 import sqlite3
-from distances import get_distances
+from distances import get_all_distances
 
 import pandas as pd
 from tqdm.auto import tqdm
@@ -186,7 +186,7 @@ class DatabaseHandler:
         origins = [(lat, lon)]
         destinations = [(l[1], l[2]) for l in res]
 
-        distances = get_distances(origins, destinations)[0]
+        distances = get_all_distances(origins, destinations)[0]
 
         distances_to_add = [(loc_id, res[i][0], distances[i]) for i in range(len(res))]
         distances_to_add += [(res[i][0], loc_id, distances[i]) for i in range(len(res))]
@@ -199,6 +199,7 @@ class DatabaseHandler:
             """,
             distances_to_add,
         )
+        self.conn.commit()
 
         return loc_id
 
@@ -212,8 +213,8 @@ class DatabaseHandler:
             f"SELECT distance FROM distances WHERE (id_point_a={a_id}) AND (id_point_b={b_id})", to_fetch_all=True
         )[0][0]
         distance_to_days = distance // 500
-        end_date_str = datetime.datetime(end_date).strftime("%d/%m/%Y")
-        start_date_str = (datetime.datetime(end_date) - datetime.timedelta(days=distance_to_days)).strftime("%d/%m/%Y")
+        end_date_str = end_date.strftime("%d/%m/%Y")
+        start_date_str = (end_date - datetime.timedelta(days=distance_to_days)).strftime("%d/%m/%Y")
 
         self.insert(
             f"""
