@@ -1,13 +1,17 @@
 import streamlit as st
-from streamlit_folium import st_folium
-import folium
+import streamlit.components.v1 as components
 
-m= folium.Map(location=[46.8139, 8.2242], zoom_start=8)
-folium.Marker(location=[46.8139, 8.2242], popup="Zurich").add_to(m)
+st.set_page_config(page_title="Map")
+st.markdown("# Map")
 
-st_data = st_folium(m)
+point_a_lat= 25.6085
+point_a_lon = -100.86183 
+point_b_lat = 26.0520019
+point_b_lon = -97.952103
+point_c_lat = 25.671039
+point_c_lon = -100.1758128 
+point_d_lat = 26.0508406
+point_d_lon = -98.2978951
 
-b= folium.Map(location=[48.8139, 4.2242], zoom_start=8)
-folium.Marker(location=[46.8139, 8.2242], popup="ggggggggg").add_to(b)
-
-st_data = st_folium(b)
+a = f"https://www.google.com/maps/embed/v1/directions?key=AIzaSyC3MZiMTmpfuAhD3JCyiVtghDEJzUiQmfk&origin={point_a_lat},{point_a_lon}&destination={point_d_lat},{point_d_lon}&waypoints={point_b_lat},{point_b_lon}|{point_c_lat},{point_c_lon}"
+components.iframe(src=a,width=650, height=350, scrolling=True)

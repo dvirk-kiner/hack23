@@ -1,4 +1,6 @@
-from ...DatabaseHandler import DatabaseHandler
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from DatabaseHandler import DatabaseHandler
 import streamlit as st
 from datetime import datetime
 import math
@@ -32,22 +34,22 @@ weight = st.number_input('weight')
 submitted_btn = st.button('Submit')
 
 if submitted_btn:
-    TODO: # insert into db - AMIT
-    # db = DatabaseHandler(r"../hack23_db.db")
-    # table_1 = "routes"
-    # table_2 = "distances"
-    # table_3 = "locations"
+    #TODO: # insert into db - AMIT
+    db = DatabaseHandler(r"../hack23_db.db")
+    table_1 = "routes"
+    table_2 = "distances"
+    table_3 = "locations"
 
-    # a_id = db.insert(f"INSERT INTO {table_3} (lat, lon) VALUES ({starting_point_lat}, {starting_point_lon})")
-    # b_id = db.insert(f"INSERT INTO {table_3} (lat, lon) VALUES ({ending_point_lat}, {ending_point_lon})")
+    a_id = db.insert(f"INSERT INTO {table_3} (lat, lon) VALUES ({starting_point_lat}, {starting_point_lon})")
+    b_id = db.insert(f"INSERT INTO {table_3} (lat, lon) VALUES ({ending_point_lat}, {ending_point_lon})")
 
-    # delivery_day = datetime.strptime(delivery_day, "%d-%m-%Y")
-    # distance =get_distances((starting_point_lat, starting_point_lon),(ending_point_lat, ending_point_lon))
-    # start_day = distance / 50 / 10
-    # start_day = delivery_day - math.ceil(distance / 50 / 10 ) if start_day >= 1 else delivery_day
+    delivery_day = datetime.strptime(delivery_day, "%d-%m-%Y")
+    distance =get_distances((starting_point_lat, starting_point_lon),(ending_point_lat, ending_point_lon))
+    start_day = distance / 50 / 10
+    start_day = delivery_day - math.ceil(distance / 50 / 10 ) if start_day >= 1 else delivery_day
     
-    # q = f"INSERT INTO {table_1} (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted) \
-    #     VALUES ({a_id}, {b_id}, '{start_day}', '{delivery_day}', {distance}, '{company_name}', 0);"
+    q = f"INSERT INTO {table_1} (id_starting_point, id_ending_point, delivery_start_date, delivery_end_date, distance, company, is_deleted) \
+        VALUES ({a_id}, {b_id}, '{start_day}', '{delivery_day}', {distance}, '{company_name}', 0);"
 
 
 
