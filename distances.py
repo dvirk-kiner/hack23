@@ -77,6 +77,8 @@ def get_all_distances(origins, destinations):
 
         distance_matrix[from_index, to_index] = distance
 
+    distance_matrix /= 1_000 # convert to km
+
     return distance_matrix
 
 
