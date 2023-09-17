@@ -62,6 +62,12 @@ class Optimizer:
         return optimized_route_id, empty_distance_utilization
 
     def optimize_routes(self, company="HOLCIM"):
+
+        
+        #truncate optimizations table
+        self.cur.execute("DELETE FROM optimizations")
+        self.db.commit()
+
         tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%d/%m/%Y")
 
         query = f"SELECT id FROM routes WHERE is_deleted=0 AND company=\"{company}\" AND delivery_start_date=\"{tomorrow_date}\""

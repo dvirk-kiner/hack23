@@ -54,3 +54,33 @@ opt_btn = st.button('Optimize')
 if opt_btn:
     opt = Optimizer(db_path)
     opt.optimize_routes()
+
+    db = DatabaseHandler(db_path)
+    table_4 = "optimizations"
+
+    # Display all the routes that are optimized in a table
+    query = f"SELECT * FROM {table_4};"
+
+    data = db.select(to_fetch_all= True, query=query)
+    data= pd.DataFrame(data,columns=['id', 'start_date', 'A_lot','A_lan',\
+                                'B_lot','B_lan','C_lot','C_lan','D_lot','D_lan'])
+    
+    # Add a column that links to ./map.py with id as a GET argument
+    # data['Map'] = [f'<a href="http://localhost:8501/Map?id={i}">Map</a>' for i in data['id']]
+    data['Map'] = [f"http://localhost:8501/Map?id={i}" for i in data['id']]
+
+    st.data_editor(
+    data,
+    column_config={
+        "Map": st.column_config.LinkColumn(
+            "Map",
+            max_chars=1000,
+        )
+    },
+    hide_index=True,
+    )
+    # st.dataframe(data)
+
+    # validate="^https://[a-z]+\.streamlit\.app$",
+
+

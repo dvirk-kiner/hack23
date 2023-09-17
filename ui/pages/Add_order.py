@@ -11,7 +11,7 @@ dh = DatabaseHandler(db_path)
 st.set_page_config(page_title="New order")
 st.markdown("# New order")
 
-company_name = st.text_input('Company', 'What is your company name?')
+company_name = st.text_input('Company', 'HOLCIM')
 
 st.write("Starting point")
 col1, col2 = st.columns(2)
