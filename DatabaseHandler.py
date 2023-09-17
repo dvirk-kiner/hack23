@@ -14,11 +14,13 @@ class DatabaseHandler:
     def __init__(self, db_path):
         self.db_path = db_path
         self.conn = sqlite3.connect(self.db_path)
+        assert self.conn is not None, f"Could not connect to database at {self.db_path}"
         self.cursor = self.conn.cursor()
 
     def select(self, query, to_fetch_all=False):
         query = query.replace("\n", " ")
         self.cursor.execute(query)
+        assert self.cursor is not None, f"Could not execute query: {query}"
         if to_fetch_all:
             return self.cursor.fetchall()
 
@@ -160,7 +162,8 @@ class DatabaseHandler:
         self.conn.commit()
 
     def location_exists(self, lon, lat):
-        q = f"SELECT id FROM locations WHERE (lat={lat}) AND (lon={lon})"
+        q = f"SELECT id FROM locations WHERE (lat={lat}) AND (lon={lon});"
+     
         res = self.select(q, to_fetch_all=True)
 
         if len(res) == 0:
@@ -203,15 +206,23 @@ class DatabaseHandler:
 
         return loc_id
 
-    def add_new_route(self, a_lon, a_lot, b_lon, b_lot, end_date, company):
+    def add_new_route(self, a_lon, a_lat, b_lon, b_lat, end_date, company):
         # Add new locations
-        a_id = self.add_new_location(a_lon, a_lot)
-        b_id = self.add_new_location(b_lon, b_lot)
+        a_id = self.add_new_location(a_lon, a_lat)
+        print(f"b_lon: {b_lon}, b_lat: {b_lat}")
+        b_id = self.add_new_location(b_lon, b_lat)
+
+        print(f"Adding new route from {a_id} to {b_id}")
 
         # Add new route
         distance = self.select(
             f"SELECT distance FROM distances WHERE (id_point_a={a_id}) AND (id_point_b={b_id})", to_fetch_all=True
-        )[0][0]
+        )
+        print("*"*20  )
+        print(f"select output: {distance}"  )
+        print("*"*20  )
+        distance = distance[0][0]
+
         distance_to_days = distance // 500
         end_date_str = end_date.strftime("%d/%m/%Y")
         start_date_str = (end_date - datetime.timedelta(days=distance_to_days)).strftime("%d/%m/%Y")

@@ -45,7 +45,7 @@ st.set_page_config(page_title="Tomorrow's Not Optimized Orders")
 st.markdown("# Tomorrow's Not Optimized Orders")
 
 # data= pd.DataFrame(np.random.randn(10, 6),columns=['Company','Starting point','Ending point','Delivery date','Type of material','Weight'])
-data= pd.DataFrame(data,columns=['Company','Starting point-Lot','Starting point-Lan',\
+data= pd.DataFrame(data,columns=['id', 'Company','Starting point-Lot','Starting point-Lan',\
                             'Ending point-Lot','Ending point-Lan','Delivery date','Distance'])
 st.dataframe(data)
 
